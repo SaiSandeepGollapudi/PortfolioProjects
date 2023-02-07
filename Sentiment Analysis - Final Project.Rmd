@@ -1,0 +1,155 @@
+---
+title: "Sentiment Analysis - Final Project"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+BIS 581 Fall 2022
+Student name: Sai Sandeep Gollapudi, hashtag - MacBook
+
+```{r}
+#load libraries
+library(tidytext)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggraph)
+library(igraph)
+library(reshape2)
+library(ggrepel)
+library(MASS)
+```
+
+Load data:
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+all_tweets <- readRDS("tweets.rds")
+```
+
+```{r}
+MacBook_tweets <- all_tweets[grep("MacBook",all_tweets$msg,fixed=FALSE,ignore.case = TRUE), ]  
+```
+
+
+```{r}
+str(MacBook_tweets)
+```
+#Ratio of retweets to tweets
+
+```{r}
+options(digits=1)
+retweets <- MacBook_tweets[grep("^RT",MacBook_tweets$msg,ignore.case = FALSE),]
+cat("The ratio of retweets to total tweets:",(nrow(retweets)/nrow(MacBook_tweets)), "i.e")
+fractions(0.3)
+
+```
+
+
+add line num
+break apart by word
+```{r}
+#adds new column as sentence num 
+MacBook_rows <- MacBook_tweets %>% mutate(sent_no = row_number())
+```
+
+
+```{r}
+#it's gonna split the sentence into words 
+MacBook_words <- MacBook_rows %>% unnest_tokens(word,msg)
+```
+
+word freq
+```{r}
+MacBook_words %>% count(word, sort=TRUE) %>% head(10)
+```
+
+```{r}
+MacBook_words <- MacBook_words %>% filter(lang=="en")
+```
+
+word freq
+```{r}
+MacBook_words %>% count(word, sort=TRUE) %>% head(10)
+```
+
+remove stop words
+```{r}
+MacBook_words <- MacBook_words %>% anti_join(stop_words)
+```
+word freq after removing stop words
+```{r}
+MacBook_words %>% count(word, sort=TRUE) %>% head(10)
+```
+
+
+remove custom stop words & show top 10 most freq words
+
+```{r}
+custom_stop_list <- tibble(word=c("https","macbook","tco","rt","1","13","2"))
+MacBook_words  <- MacBook_words %>% anti_join(custom_stop_list)
+MacBook_words %>% count(word, sort=TRUE) %>% head(10)
+```
+#PLOT top 15 meaningful positive, and negative words
+
+```{r}
+MacBook_words %>% inner_join(get_sentiments("bing")) %>% count(word,sentiment, sort=TRUE) %>% ungroup() %>% group_by(sentiment) %>% top_n(15) %>% ungroup() %>% mutate(word=reorder(word,n)) %>% ggplot(aes(word,n,fill=sentiment)) + geom_col(show.legend=FALSE) + scale_fill_manual(values=c("red2","green3")) + facet_wrap(~sentiment, scales="free_y") + ylim(0,30) + coord_flip()
+```
+
+#Macbook Sentiment - NRC
+
+```{r}
+MacBook_words  %>% inner_join(get_sentiments("nrc")) %>% group_by(sentiment) %>% summarise(word_count=n()) %>% ungroup() %>% mutate(sentiment=reorder(sentiment,word_count)) %>% ggplot(aes(sentiment,word_count,fill=-word_count)) + geom_col() + guides(fill="none") + labs(x=NULL,y="Word Count") + scale_y_continuous(limits=c(0,120)) + 
+ggtitle("Macbook Sentiment - NRC") +
+geom_text(aes(label=word_count),hjust=-.5) + coord_flip()
+
+```
+# Word cloud of most frequent positive and negative words
+
+```{r}
+MacBook_words %>% inner_join(get_sentiments("bing")) %>% count(word,sentiment, sort=TRUE) %>% acast(word~sentiment,value.var="n",fill=0) %>% wordcloud::comparison.cloud(colors=c("blue","red"),scale=c(4,1),random.order=FALSE,max.words=30)
+```
+
+
+#who are the top 10 users based on count of tweets
+
+
+```{r}
+users_highest_number_of_tweets <-  MacBook_tweets %>% group_by(username) %>% summarise(number_of_tweets =length(username)) %>% arrange(desc(number_of_tweets))
+
+top_n(users_highest_number_of_tweets,10)
+
+```
+#how many of the tweets are retweets
+
+
+```{r}
+retweets <- MacBook_tweets[grep("^RT",MacBook_tweets$msg,ignore.case = FALSE),]
+cat("The number of tweets that are retweets:",(nrow(retweets)))
+```
+
+#create a network diagram based on bigrams of negative words
+
+```{r}
+MacBook_tweets_en <- MacBook_tweets %>% filter(lang=="en")
+```
+
+split to bigrams
+```{r}
+bigrams <- MacBook_tweets_en%>% unnest_tokens(bigram,msg,token="ngrams", n=2)
+```
+
+```{r}
+bigram_count <- data.frame(bigrams =bigrams$bigram )
+bigram_count <- bigram_count  %>% separate(bigrams,c("word1","word2"),sep=" ")
+bigram_count<-bigram_count%>% filter(!word1 %in% stop_words$word)%>%filter(!word2 %in% stop_words$word) %>% count(word1,word2, sort = TRUE)
+```
+
+
+```{r}
+# n is the count that how many times it shows up 
+
+bigram_count %>%  filter(n>20) %>% graph_from_data_frame() %>% ggraph(layout="fr") + geom_edge_link(aes(edge_alpha = n, edge_width = n)) + geom_node_point(color="darkslategray4", size=3) + geom_node_text(aes(label=name), vjust=1.8, size=3) + labs(title="network diagram",subtitle="text mining",x="",y="")
+```
+
+
+
