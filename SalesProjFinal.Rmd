@@ -1,0 +1,231 @@
+---
+title: "BIS581"
+output:
+  word_document: default
+  html_notebook: default
+---
+STUDENT NAME: Sai Sandeep Gollapudi
+FALL 2022
+
+THE WORK YOU SUBMIT MUST BE YOUR OWN!
+BIS 581 final project. You have three data sets, one for the central region, one for eastern, and one for the western region.  You may need to edit the code below for the path to the files.
+
+```{r}
+library(tidyr)
+library(tidyverse)
+#load from CSV
+centralData <- read.csv("Orders_Central.csv", header=TRUE)
+westData <- read.csv("orders_west.csv", header=TRUE)
+eastData <- read.delim("Orders_East.txt", header=TRUE, sep='\t')
+```
+For this assignment, answer the following questions, but please note: the data may or may not be setup such that you can just answer. You may need to perform some "data wrangling" before you can answer. Include the code you use for any wrangling/EDA in your submission. Also include the code you use to answer each question along with text indicating what the answer is. You must provide proof of your answer by showing your R code. You may use online resources and talk to others, but what you submit must be your own work.
+
+
+
+```{r}
+centralData <- unite(centralData, Order.Date,Order.Month,Order.Day,Order.Year, sep = "-")
+```
+
+```{r}
+centralData <- unite(centralData, Ship.Date,Ship.Month,Ship.Day,Ship.Year, sep = "-")
+```
+
+```{r}
+str(centralData)
+```
+
+
+```{r}
+centralData$Order.Date <- as.Date(centralData$Order.Date, format="%m - %d - %Y")
+centralData$Ship.Date <- as.Date(centralData$Ship.Date, format="%m - %d - %Y")
+```
+
+
+```{r}
+str(westData)
+```
+
+
+```{r}
+westData$Order.Date <- as.Date(westData$Order.Date, format="%Y-%m-%d")
+westData$Ship.Date <- as.Date(westData$Ship.Date, format="%Y-%m-%d")
+```
+
+```{r}
+str(westData)
+```
+
+```{r}
+eastData$Order.Date <- as.Date(eastData$Order.Date, format="%m/%d/%Y")
+eastData$Ship.Date <- as.Date(eastData$Ship.Date, format="%m/%d/%Y")
+```
+
+#which region, on average, ships products slowest:
+
+```{r}
+options(digits=5)
+westData$howlong <- westData$Ship.Date - westData$Order.Date
+```
+
+```{r}
+cat("The mean shipping time of products in west region is ", mean(westData$howlong))
+```
+
+```{r}
+eastData$howlong <- eastData$Ship.Date - eastData$Order.Date
+```
+
+```{r}
+cat("The mean shipping time of products in east region is ", mean(eastData$howlong,na.rm=TRUE))
+```
+
+```{r}
+centralData$howlong <- centralData$Ship.Date - centralData$Order.Date
+```
+
+```{r}
+cat("The mean shipping time of products in central region is ", mean(centralData$howlong,na.rm=TRUE))
+```
+
+```{r}
+cat("The mean shipping time of products in west region is ", mean(westData$howlong), "\n")
+cat("The mean shipping time of products in east region is ", mean(eastData$howlong,na.rm=TRUE), "\n")
+cat("The mean shipping time of products in central region is ", mean(centralData$howlong,na.rm=TRUE))
+```
+
+#Answer: Central region, on average, ships products slowest
+
+
+
+
+#Which products ship fastest by region:
+
+west region
+```{r}
+group_by(westData,Product.Name) %>% summarise(meanShipTime=mean(howlong)) %>% arrange(meanShipTime) %>% filter(meanShipTime == min(meanShipTime)) %>% head(15)
+```
+central region
+```{r}
+group_by(centralData,Product) %>% summarise(meanShipTime=mean(howlong)) %>% arrange(meanShipTime) %>% filter(meanShipTime == min(meanShipTime)) %>% head(15)
+
+```
+eastData region
+```{r}
+#I took Product.ID here because when i take Product.name as the Product.name is big the meanShipTime is not visible side by side
+group_by(eastData,Product.ID) %>% summarise(meanShipTime=mean(howlong,na.rm = TRUE)) %>% arrange(meanShipTime) %>% filter(meanShipTime == min(meanShipTime,na.rm = TRUE)) %>% head(15)
+```
+
+
+
+Plot time to ship by category, by year.
+
+
+
+
+
+```{r}
+eastData$Ship.Year <- format(eastData$Ship.Date,"%Y")
+
+
+ggplot(data=eastData, aes(x = howlong, y = Category,
+color=Ship.Year )) + geom_boxplot()
+
+
+```
+
+
+```{r}
+westData$Ship.Year <- format(westData$Ship.Date,"%Y")
+
+
+ggplot(data=westData)+ geom_boxplot( aes(x = howlong, y = Category,
+color=Ship.Year )) 
+
+
+```
+
+
+```{r}
+centralData$Ship.Year <- format(centralData$Ship.Date,"%Y")
+
+
+ggplot(data=centralData)+ geom_boxplot( aes(x = howlong, y = Category,
+color=Ship.Year )) 
+
+
+```
+
+
+
+
+
+
+-----Grads only-----
+which categories have highest profit by region, chain-wide?
+
+
+```{r}
+group_by(eastData,Category) %>% summarise(TotalProfit=sum(Profit,na.rm = TRUE))%>% arrange(desc(TotalProfit)) %>% top_n(1)
+```
+
+```{r}
+group_by(centralData,Category) %>% summarise(TotalProfit=sum(Profit,na.rm = TRUE))%>% arrange(desc(TotalProfit)) %>% top_n(1)
+
+```
+```{r}
+group_by(westData,Category) %>% summarise(TotalProfit=sum(Profit,na.rm = TRUE))  %>% arrange(desc(TotalProfit)) %>% top_n(1)
+```
+#Answer. Office supplies have the highest profit store wide
+
+
+which segments have the lowest profit by region?
+
+```{r}
+group_by(westData,Segment) %>% summarise(TotalProfit=sum(Profit,na.rm = TRUE))  %>% arrange(TotalProfit) %>% head(1)
+```
+
+```{r}
+group_by(eastData,Segment) %>% summarise(TotalProfit=sum(Profit,na.rm = TRUE))  %>% arrange(TotalProfit) %>% filter(TotalProfit != 0) %>% head(1)
+```
+
+```{r}
+group_by(centralData,Segment) %>% summarise(TotalProfit=sum(Profit,na.rm = TRUE))  %>% arrange(TotalProfit) %>% head(1)
+```
+
+What are yearly sales by region?
+
+
+```{r}
+centralData$Order.Year <- format(centralData$Order.Date,"%Y")
+
+centralData %>% group_by(Order.Year) %>% summarise(SalesTotal=sum(Sales))
+```
+
+```{r}
+eastData$Order.Year <- format(eastData$Order.Date,"%Y")
+
+eastData$Sales <- as.numeric(gsub("USD","",eastData$Sales))
+
+eastData %>% group_by(Order.Year) %>% summarise(SalesTotal=sum(Sales,na.rm=TRUE))
+```
+
+
+```{r}
+westData$Order.Year <- format(westData$Order.Date,"%Y")
+
+westData %>% group_by(Order.Year) %>% summarise(SalesTotal=sum(Sales))
+```
+
+Which customer purchased the most (by dollar amount, in a single order) by region and what did they buy?
+
+```{r}
+centralData %>% group_by(Customer.Name,Customer.ID, Product, Quantity) %>% summarise(dollarAmount  = max(Sales)) %>% arrange(desc(dollarAmount))%>% head(1)
+```
+
+```{r}
+eastData %>% group_by(Customer.Name,Customer.ID, Product.Name, Quantity) %>% summarise(dollarAmount  = max(Sales)) %>% arrange(desc(dollarAmount))%>% head(1)
+```
+
+```{r}
+westData %>% group_by(Customer.Name,Customer.ID, Product.Name, Quantity) %>% summarise(dollarAmount  = max(Sales)) %>% arrange(desc(dollarAmount))%>% head(1)
+```

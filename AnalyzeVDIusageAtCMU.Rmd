@@ -1,0 +1,135 @@
+---
+title: "Sai Sandeep Gollapudi- midtermSolution"
+output:
+  word_document: default
+  html_notebook: default
+---
+BIS 581 Fall 2022
+Student name: Sai Sandeep Gollapudi
+
+#load libraries
+```{r libs, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidytext)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggraph)
+library(igraph)
+```
+
+```{r}
+VDI <- read.csv("vdi_serverlogs.csv", header=TRUE, stringsAsFactors = FALSE)
+
+apps <- read.csv("vdi_statsapps.csv", header=TRUE, stringsAsFactors = FALSE)
+```
+
+## join the two together just in case
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+apps$VDI_ID <- as.integer(apps$VDI_ID)
+usage <-  VDI %>% inner_join(apps)
+```
+## Data Wrangling
+```{r}
+#Using as.POSIXct from date_manipulation document as the date has hours & minutes also. 
+usage$logon_DTS <- as.POSIXct(usage$logon_DTS, format= "%m/%d/%y %H:%M")
+usage$logout_DTS <- as.POSIXct(usage$logout_DTS, format= "%m/%d/%y %H:%M")
+
+# Taking usage data set and filtering it for only year 2014 & CMUVDI machines 
+filterUsersOn14VDI <- usage %>% filter(substring(logon_DTS, 1, 4)=="2014", substring(comp_name, 1,6)=="CMUVDI")
+
+```
+#Methodology I used to anlyze the data
+Explanation - Before starting analysis/ filter, as correcting all the data types required for solving the questions. After joining the data sets, I clicked on the data set and did str to understand the structure of data. As every column in a data set like the logon_DTS, logout_DTS are by default in character, we need to correct them. So, Fixed the date and changed format. As we need to time difference for question - top 5 users by the length of time logged in.When we joined the two data sets there were some NAs created in avg_cpu. So, these were the errors/issues I felt that the reader needs to know about like this bad format of data. 
+
+
+I used str to check if logon_DTS, logout_DTS are changed correctly.
+```{r}
+str(usage)
+```
+
+
+
+## how many users were on the system total?
+
+```{r}
+total_system_users <- as.data.frame(unique(filterUsersOn14VDI$userid)) %>% count()
+# printing the number of users on the system
+paste("there are ",total_system_users,"number of users on the system")
+```
+Explanation - I used unique on the data set which had usage data set with filtering for only year 2014 & CMUVDI machines. For using count function I converted the data set into a data frame.  
+
+Feedback in class: 
+When asked system total we should not use unique on no. of users. We should calc how many times a user has logged in total i.e even if they logged out and logged in, you should calc how many times they logged in total. so how many times logged in so shouldn't use unique 
+
+You should do fact check/ common sense to check if the average & how many users were on the system total are correlated like if its 4331 total users then average number of users per day should not be 900. Because if avg is 900 then total should be lot more than 4000.
+
+R, python are JSON parsers
+
+
+## what is the average number of users per day
+```{r}
+#to just have date without time 
+filterUsersOn14VDI$year_without_time <- as.Date(filterUsersOn14VDI$logon_DTS)
+#I grouped by year as we need grouping based on Year. Used summarise to aggregate and i used function length and unique to find users per day. i used VDI_ID as every time a new user logs in a new VDI_ID is recorded for that user. To calculate the average 
+per_day_users <- filterUsersOn14VDI %>% group_by(year_without_time) %>% summarise(users_perday =length(unique(VDI_ID)))
+# adding all the users per day and dividing by number of days to get the average user per day
+average_users <- sum(per_day_users$users_perday)/nrow(per_day_users)
+# printing the results of average users per day
+paste("Average number of users per day is ",round(average_users),"users")
+
+```
+ 
+
+#• what is the highest number of users per day
+
+```{r}
+#I used max to find the highest number of users per day
+max(per_day_users$users_perday)
+```
+
+
+#Grad students only:
+#E-H: top 5 users by length of time logged in
+
+ 
+```{r}
+# difftime to find difference between logon_DTS, logout_DTS with units as minutes
+filterUsersOn14VDI$time_diff <- difftime(time2= filterUsersOn14VDI$logon_DTS, time1=filterUsersOn14VDI$logout_DTS, units = "min" )
+
+#Creating a data frame which has data grouped by userId, as we need grouping based on users. Used summarise to find the maximum time value of that user. Then arranged it based as descending on time difference as we need highest users by length of time logged in. 
+
+top_users <- filterUsersOn14VDI %>% group_by(userid) %>% summarise(Minutes = max(time_diff)) %>% arrange(desc(Minutes))
+
+#I used function Head to print the top 5 users
+head(top_users,5)
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+userPlot <- head(top_users,5)
+#used geom_bar to bar graph and added label using geom_text, ggtitle for the title. 
+ggplot(data = userPlot,mapping = aes(x = userid, y = Minutes ))+geom_bar(stat = "identity")+geom_text(mapping = aes(label = Minutes),position = position_stack(vjust = 1.1))+ ggtitle(" top 5 users by length of time logged in")
+
+```
+
+ ##top 5 applications by number of times run
+
+```{r}
+#Creating a data frame which has data grouped by app_name, as we need grouping based on app_name. Used summarise to find the Number of Times Run. Then arranged it based as descending on that Top 5 Applications By Number of Times Run.
+app_times_run <- filterUsersOn14VDI %>% group_by(app_name) %>% summarise(Number_run =length(app_name)) %>%
+arrange(desc(Number_run))
+#I used function Head to print the top 5 apps
+head(app_times_run,5)
+```
+
+
+
+```{r}
+
+appplot <- head(app_times_run,5)
+#used bar graph and added label for number of 
+ggplot(data = appplot,mapping = aes(x = app_name, y = Number_run,fill = Number_run ))+geom_bar(stat = "identity")+geom_text(mapping = aes(label = Number_run), position = position_stack(vjust = 1.1))+ ggtitle("  top 5 applications by number of times run")
+
+```
+
+
+
