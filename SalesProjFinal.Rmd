@@ -7,7 +7,6 @@ output:
 STUDENT NAME: Sai Sandeep Gollapudi
 FALL 2022
 
-THE WORK YOU SUBMIT MUST BE YOUR OWN!
 BIS 581 final project. You have three data sets, one for the central region, one for eastern, and one for the western region.  You may need to edit the code below for the path to the files.
 
 ```{r}
