@@ -58,14 +58,6 @@ paste("there are ",total_system_users,"number of users on the system")
 ```
 Explanation - I used unique on the data set which had usage data set with filtering for only year 2014 & CMUVDI machines. For using count function I converted the data set into a data frame.  
 
-Feedback in class: 
-When asked system total we should not use unique on no. of users. We should calc how many times a user has logged in total i.e even if they logged out and logged in, you should calc how many times they logged in total. so how many times logged in so shouldn't use unique 
-
-You should do fact check/ common sense to check if the average & how many users were on the system total are correlated like if its 4331 total users then average number of users per day should not be 900. Because if avg is 900 then total should be lot more than 4000.
-
-R, python are JSON parsers
-
-
 ## what is the average number of users per day
 ```{r}
 #to just have date without time 
