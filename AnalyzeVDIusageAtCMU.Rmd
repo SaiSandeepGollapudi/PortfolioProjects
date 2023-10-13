@@ -1,11 +1,9 @@
 ---
-title: "Sai Sandeep Gollapudi- midtermSolution"
+title: "Optimizing the applications’ licenses used by users through the Virtual Desktop Infrastructure at CMU."
 output:
   word_document: default
   html_notebook: default
 ---
-BIS 581 Fall 2022
-Student name: Sai Sandeep Gollapudi
 
 #load libraries
 ```{r libs, echo=FALSE, message=FALSE, warning=FALSE}
@@ -80,7 +78,6 @@ max(per_day_users$users_perday)
 ```
 
 
-#Grad students only:
 #E-H: top 5 users by length of time logged in
 
  
