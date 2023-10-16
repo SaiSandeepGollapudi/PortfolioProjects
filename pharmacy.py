@@ -13,7 +13,7 @@ class PharmacyManagementSystem:
         self.root.title("Pharmacy Management System")
         self.root.geometry("1550x800+0+0")
 
-        # ===============================varibles Declaration==========================================================
+        # ===============================variables Declaration==========================================================
         self.ref_var=StringVar()
         self.cmpName_var=StringVar()
         self.typeMed_var=StringVar()
